@@ -1,0 +1,77 @@
+# Dependencies
+node_modules/
+backend/venv/
+backend/.venv/
+venv/
+.venv/
+
+# Next.js Build & Outputs
+.next/
+out/
+build/
+dist/
+
+# Environment Variables & Secrets (NEVER COMMIT REAL SECRETS)
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+backend/.env
+backend/.env.local
+backend/.env.*.local
+
+# SQLite Database Files
+*.db
+*.sqlite
+*.sqlite3
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pytest_cache/
+
+# OS & Sandbox files
+.DS_Store
+Thumbs.db
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+
+# Local LiveKit Binaries
+livekit-bin/
+livekit.yaml
+livekit-server*
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Next.js
+.next/
+out/
+
+# Node
+node_modules/
+
+# Testing
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
