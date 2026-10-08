@@ -15,12 +15,18 @@ app = FastAPI(
 )
 
 # Base allowed origins including local dev and deployed production frontend
+# Both without and with trailing slash to ensure exact match regardless of client/proxy headers
 default_origins = [
     "http://localhost:3000",
+    "http://localhost:3000/",
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:3000/",
     "http://localhost:3001",
+    "http://localhost:3001/",
     "http://127.0.0.1:3001",
+    "http://127.0.0.1:3001/",
     "https://huddle-gamma-three.vercel.app",
+    "https://huddle-gamma-three.vercel.app/",
 ]
 
 # Configure CORS using FRONTEND_URL environment variable if provided
@@ -30,14 +36,18 @@ allowed_origins = list(default_origins)
 
 if frontend_url_env:
     for origin in frontend_url_env.split(","):
-        cleaned = origin.strip().rstrip("/")
-        if cleaned and cleaned != "*" and cleaned not in allowed_origins:
-            allowed_origins.append(cleaned)
+        cleaned = origin.strip()
+        base = cleaned.rstrip("/")
+        if base and base != "*":
+            if base not in allowed_origins:
+                allowed_origins.append(base)
+            if f"{base}/" not in allowed_origins:
+                allowed_origins.append(f"{base}/")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$",
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?/?$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
     allow_headers=["*"],

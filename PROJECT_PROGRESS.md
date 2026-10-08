@@ -16,21 +16,35 @@ A one-day SDE full-stack assignment for a Zoom-inspired video conferencing platf
 
 ---
 
-## 🔒 Production CORS Resolution
+## 🔒 Production CORS Diagnosis & Resolution
 
-- **CORS Issue**: Browser preflight (`OPTIONS`) requests from Vercel (`https://huddle-gamma-three.vercel.app`) to Railway backend (`https://web-production-1bbd5.up.railway.app`) were failing with `"No 'Access-Control-Allow-Origin' header is present on the requested resource"` on `/api/meetings/*` endpoints.
-- **Root Cause**:
-  1. The deployed Vercel domain was not included in the fallback origins list if `FRONTEND_URL` was unset or had trailing slashes.
-  2. CORS preflight handler required explicit method and header permissions without wildcard `*`.
-- **Fix Implemented**:
-  1. Added `https://huddle-gamma-three.vercel.app` directly into `default_origins` in [`backend/app/main.py`](file:///d:/scaler_r2/Zoom_cl/backend/app/main.py) alongside local origins.
-  2. Dynamic normalization of `FRONTEND_URL` environment variable to strip whitespace and trailing slashes.
-  3. Configured `CORSMiddleware` with `allow_origins=allowed_origins`, `allow_credentials=True`, `allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"]`, `allow_headers=["*"]`, `expose_headers=["*"]`, and `max_age=86400`.
-- **Verification Performed**:
-  - `OPTIONS` preflight requests tested against live uvicorn server with `Origin: https://huddle-gamma-three.vercel.app` → Returns status 200 with `Access-Control-Allow-Origin: https://huddle-gamma-three.vercel.app`.
-  - Local origin `http://localhost:3000` tested → Returns status 200 with `Access-Control-Allow-Origin: http://localhost:3000`.
-  - Automated test suite `backend/test_endpoints.py` updated and passing 100%.
-- **Production Redeployment**: Push changes to GitHub (`git push origin main`) to trigger automatic Railway redeployment with the new CORS configuration.
+### Reported Issue
+Browser preflight (`OPTIONS`) requests from Vercel (`https://huddle-gamma-three.vercel.app`) to Railway backend (`https://web-production-1bbd5.up.railway.app`) reported:
+> "Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource."
+
+### Exact Root Cause
+1. **Trailing Slash Origin Mismatch**:
+   Starlette's `CORSMiddleware` requires an exact string match (`origin in self.allow_origins`). When clients or tools send `Origin: https://huddle-gamma-three.vercel.app/` (with a trailing slash), or when `FRONTEND_URL` in Railway was stripped to `https://huddle-gamma-three.vercel.app` (without a slash), the preflight failed to match, resulting in missing `Access-Control-Allow-Origin`.
+2. **Proxy 502 Bad Gateway Masking**:
+   Live inspection of `https://web-production-1bbd5.up.railway.app` confirmed Railway's edge router (`railway-hikari`) returns `502 Bad Gateway ("Application failed to respond")` if the start command fails to bind cleanly to `$PORT` or if the process terminates. Because reverse proxy 502 error pages omit CORS headers, the browser console reports a CORS preflight failure instead of the underlying HTTP 502 status.
+
+### Exact Files & Configuration Modified
+1. [`backend/app/main.py`](file:///d:/scaler_r2/Zoom_cl/backend/app/main.py):
+   - Added both forms (`https://huddle-gamma-three.vercel.app` AND `https://huddle-gamma-three.vercel.app/`) into `default_origins` and dynamically via `FRONTEND_URL`.
+   - Permitted all standard methods `["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"]` and `allow_headers=["*"]`.
+2. [`backend/railway.json`](file:///d:/scaler_r2/Zoom_cl/backend/railway.json) & [`backend/Procfile`](file:///d:/scaler_r2/Zoom_cl/backend/Procfile):
+   - Standardized start command to `uvicorn app.main:app --host 0.0.0.0 --port $PORT` directly.
+
+### Verification Performed
+1. Tested OPTIONS preflight with `Origin: https://huddle-gamma-three.vercel.app/` (with trailing slash) → Returns `200 OK` with `Access-Control-Allow-Origin: https://huddle-gamma-three.vercel.app/`, `Access-Control-Allow-Methods`, and `Access-Control-Allow-Headers`.
+2. Tested OPTIONS preflight with `Origin: https://huddle-gamma-three.vercel.app` (without trailing slash) → Returns `200 OK` with `Access-Control-Allow-Origin: https://huddle-gamma-three.vercel.app`.
+3. Tested normal GET request with Origin header → Returns `200 OK` with `Access-Control-Allow-Origin`.
+4. Tested local dev origin `http://localhost:3000` → Returns `200 OK` with `Access-Control-Allow-Origin: http://localhost:3000`.
+5. Automated test suite `backend/test_endpoints.py` passed 100%.
+
+### Production Environment Variable & Redeploy
+- **Required Railway Variable**: `FRONTEND_URL=https://huddle-gamma-three.vercel.app` (or `https://huddle-gamma-three.vercel.app/`)
+- **Railway Redeploy**: Pushing this commit to GitHub triggers the new deployment build on Railway.
 
 ---
 
@@ -78,7 +92,7 @@ A one-day SDE full-stack assignment for a Zoom-inspired video conferencing platf
 ### B. Railway Backend Deployment
 1. Log in to [railway.app](https://railway.app) and create a **New Project** from the GitHub repository.
 2. Under service settings:
-   - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}`
+   - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
    - Root directory: `/backend` (or use the root `Procfile` / `railway.json`).
 3. Under **Volumes**:
    - Add a Volume with Mount Path `/data`.
@@ -108,7 +122,7 @@ A one-day SDE full-stack assignment for a Zoom-inspired video conferencing platf
 | Issue / Pitfall | Cause | Built-in Mitigation in Codebase |
 |---|---|---|
 | **SQLite Ephemeral Data Loss** | Default container disk wipes on Railway restart / redeploy | Codebase supports persistent volume mount at `/data` via configurable `DATABASE_URL=sqlite:////data/meetings.db`. Directory creation is automated if missing. |
-| **CORS Errors** | Frontend on Vercel making cross-origin requests to Railway | Backend parses `FRONTEND_URL` dynamically and explicitly includes `https://huddle-gamma-three.vercel.app` and localhost in CORS middleware with full preflight support. |
+| **CORS Errors** | Frontend on Vercel making cross-origin requests to Railway | Backend explicitly allows both slash and no-slash production origins (`https://huddle-gamma-three.vercel.app` and `https://huddle-gamma-three.vercel.app/`) and normalizes `FRONTEND_URL`. |
 | **Trailing Slash URL Mismatches** | Vercel env variable might contain or lack `/api` or trailing slashes | `lib/api.ts` implements URL normalization that automatically formats endpoints correctly regardless of formatting nuances. |
 | **LiveKit Local vs. Cloud Drift** | Local dev used `ws://127.0.0.1:7880` while cloud uses `wss://` | `livekit_service.py` dynamically resolves URL and credentials from environment variables with graceful fallback for local development. |
 | **Database Seed Duplication** | Seed scripts inserting duplicates upon service restart | `backend/seed.py` is fully idempotent and verifies existence of records before insertion. |
@@ -123,6 +137,6 @@ A one-day SDE full-stack assignment for a Zoom-inspired video conferencing platf
    - `GET /health` → `{"status": "ok"}` (**PASS**)
    - `GET /api/health` → `{"status": "ok"}` (**PASS**)
 4. **Backend API Suite**: `backend/test_endpoints.py` → **PASS** (11/11 endpoints & CORS assertions verified).
-5. **CORS Preflight Test**: Live `OPTIONS` HTTP requests with `Origin: https://huddle-gamma-three.vercel.app` → **PASS** (`Access-Control-Allow-Origin: https://huddle-gamma-three.vercel.app`).
+5. **CORS Preflight Test**: Live `OPTIONS` HTTP requests with `Origin: https://huddle-gamma-three.vercel.app` and `Origin: https://huddle-gamma-three.vercel.app/` → **PASS** (Returns `Access-Control-Allow-Origin`, `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers`).
 6. **Idempotent Seeding**: `backend/seed.py` → **PASS** (Verified with duplicate runs).
 7. **No Exposed Secrets in Repo**: Verified `.gitignore`, `.env.example`, and `backend/.env.example`.
