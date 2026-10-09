@@ -25,7 +25,7 @@ export const user = {
   name: 'Puneet Chauhan',
   initial: 'P',
   plan: 'Basic',
-  personalMeetingId: '374 622 4558',
+  personalMeetingId: '482 915 3720',
 }
 
 export function formatBackendToUpcoming(m: BackendMeeting): UpcomingMeeting {
