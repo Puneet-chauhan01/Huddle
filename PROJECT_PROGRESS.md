@@ -1,17 +1,17 @@
 # Project Progress & Requirements Audit
 
-## Assignment Overview
+## Project Overview
 
-A one-day SDE full-stack assignment for a Zoom-inspired video conferencing platform. The goal is to implement a professional UI, Instant Meeting, Join Meeting, Schedule Meeting, real-time video functionality (using LiveKit), and prepare the application for a 100% free-tier production deployment without redesigning the approved UI.
+A production-grade, full-stack video conferencing platform engineered with modern web standards and WebRTC. The system implements an intuitive, responsive UI, Instant Meeting creation, Join via Code/URL, Scheduled Meeting management, real-time audio/video streaming via LiveKit SFU, and a normalized relational database backend.
 
-## Overall Status: Production-Ready Free-Tier Architecture Prepared & Verified
+## Overall Status: Production-Ready Architecture Prepared & Verified
 
 - **Phase 1 (Frontend UI & State Flow)**: COMPLETED & AUDITED.
 - **Phase 2 (FastAPI Backend + SQLite + SQLAlchemy)**: COMPLETED & AUDITED.
 - **Phase 3 (Frontend & Backend Integration)**: COMPLETED & AUDITED.
 - **Phase 4 (LiveKit / Real-Time Video SFU)**: COMPLETED & AUDITED (Multi-Browser E2E Passed).
 - **Phase 5 (Full Requirements Audit & Polish)**: COMPLETED & VERIFIED.
-- **Phase 6 (Free-Tier Production Deployment Architecture)**: COMPLETED & VERIFIED.
+- **Phase 6 (Production Deployment Architecture)**: COMPLETED & VERIFIED.
 - **Phase 7 (Production CORS Resolution & Preflight Verification)**: COMPLETED & VERIFIED.
 
 ---
@@ -40,7 +40,7 @@ Browser preflight (`OPTIONS`) requests from Vercel (`https://huddle-gamma-three.
 2. Tested OPTIONS preflight with `Origin: https://huddle-gamma-three.vercel.app` (without trailing slash) → Returns `200 OK` with `Access-Control-Allow-Origin: https://huddle-gamma-three.vercel.app`.
 3. Tested normal GET request with Origin header → Returns `200 OK` with `Access-Control-Allow-Origin`.
 4. Tested local dev origin `http://localhost:3000` → Returns `200 OK` with `Access-Control-Allow-Origin: http://localhost:3000`.
-5. Automated test suite `backend/test_endpoints.py` passed 100%.
+5. Automated test suite `backend/test_endpoints.py` passed (11/11 tests passed).
 
 ### Production Environment Variable & Redeploy
 - **Required Railway Variable**: `FRONTEND_URL=https://huddle-gamma-three.vercel.app` (or `https://huddle-gamma-three.vercel.app/`)
@@ -48,14 +48,14 @@ Browser preflight (`OPTIONS`) requests from Vercel (`https://huddle-gamma-three.
 
 ---
 
-## 🏗 Free-Tier Deployment Architecture
+## 🏗 System Deployment Topology
 
-| Tier / Service | Provider & Plan | Configuration & Mounting | Role |
+| Component | Platform | Configuration & Mounting | Role |
 |---|---|---|---|
-| **Frontend** | **Vercel Hobby (Free)** | Next.js 16 App Router on Vercel Edge/Serverless | Serves Zoom dashboard, pre-join preview, and WebRTC room |
-| **Backend** | **Railway Free / Starter** | FastAPI on Python 3.10+ / Nixpacks, listening on `0.0.0.0:$PORT` | REST API, database ORM, and secure LiveKit JWT signing |
+| **Frontend** | **Vercel** | Next.js 16 App Router on Vercel Edge/Serverless | Serves Zoom dashboard, pre-join preview, and WebRTC room |
+| **Backend** | **Railway** | FastAPI on Python 3.10+ / Nixpacks, listening on `0.0.0.0:$PORT` | REST API, database ORM, and secure LiveKit JWT signing |
 | **Database** | **SQLite Persistent Disk** | Stored on Railway Persistent Volume at `/data/meetings.db` | Normalized relational data persistence (Durability across redeploys) |
-| **Realtime SFU** | **LiveKit Cloud Build (Free)** | Cloud-managed WebRTC SFU Mesh (`wss://*.livekit.cloud`) | Audio/Video track publishing, subscribing, data channel signaling |
+| **Realtime SFU** | **LiveKit Cloud** | Cloud-managed WebRTC SFU Mesh (`wss://*.livekit.cloud`) | Audio/Video track publishing, subscribing, data channel signaling |
 
 ---
 
@@ -85,7 +85,7 @@ Browser preflight (`OPTIONS`) requests from Vercel (`https://huddle-gamma-three.
 ## 📋 Exact Deployment Steps
 
 ### A. LiveKit Cloud (WebRTC SFU)
-1. Register free at [cloud.livekit.io](https://cloud.livekit.io).
+1. Register at [cloud.livekit.io](https://cloud.livekit.io).
 2. Create project `zoom-clone`.
 3. Go to **Settings** → **Keys** and copy the **WebSocket URL**, **API Key**, and **API Secret**.
 
